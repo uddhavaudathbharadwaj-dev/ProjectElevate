@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Elevate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117; /* Dark background */
+            color: #c9d1d9; /* Light text */
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden; /* Prevent body scroll */
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        
+        /* Utility to show/hide views with a smooth transition */
+        .ui-container {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease-in-out;
+            flex: 1 1 0%;
+            display: none;
+            overflow: hidden; /* Control internal scrolling */
+        }
+        
+        .ui-container.is-active {
+            opacity: 1;
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Typing indicator dots animation */
+        .typing-indicator span {
+            animation: bounce 1s infinite;
+        }
+        .animation-delay-200 { animation-delay: 200ms; }
+        .animation-delay-400 { animation-delay: 400ms; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
+        
+        /* Flashcard layout styles */
+        .flashcard-main-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .flashcard-display {
+            width: 100%;
+            border-radius: 1rem;
+            background-color: #1f2937;
+            color: #ffffff;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .answer-container {
+            display: none;
+            margin-top: 1rem;
+            padding: 1.5rem;
+            background-color: #374151;
+            border-radius: 1rem;
+            width: 100%;
+        }
+        .answer-container.is-visible {
+            display: block;
+        }
+        
+        /* Ensure the chat container takes up all available space for scrolling */
+        #chat-interface {
+            display: flex; 
+        }
+        #chat-container {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    
+    <!-- Main Container - Fixed height for the app window -->
+    <div class="w-full max-w-xl bg-slate-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[80vh] sm:h-[90vh]">
+        
+        <!-- Header - FIXED and visible at the top (flex-shrink-0 prevents it from shrinking) -->
+        <div class="bg-slate-950 text-white p-4 flex items-center justify-between flex-shrink-0 border-b border-gray-700">
+            <div class="flex items-center space-x-4">
+                <!-- Logo Tag - NOTE: src="./logo.png" requires logo.png file to be present locally -->
+                <img id="project-elevate-logo" class="w-10 h-10 flex-shrink-0 rounded-none" 
+                     src="Project Elevate.png" 
+                     alt="Project Elevate Logo" />
+                <div>
+                    <h1 id="main-header" class="text-xl font-bold tracking-tight">Project Elevate</h1>
+                    <p id="status-text" class="text-sm text-gray-400">AI-powered learning</p>
+                </div>
+            </div>
+            <div class="flex space-x-2">
+                <button id="topics-tools-btn-chat" class="bg-blue-600 text-white p-2 px-4 rounded-full text-sm font-medium hover:bg-blue-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-md">
+                    Topics/Tools
+                </button>
+                <button id="plans-btn" class="bg-blue-600 text-white p-2 px-4 rounded-full text-sm font-medium hover:bg-blue-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-md">
+                    Plans
+                </button>
+            </div>
+        </div>
+        
+        <!-- Landing Page Section -->
+        <div id="landing-page" class="ui-container is-active flex-col items-center justify-center text-center p-8">
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-white mb-6 tracking-tight">Project Elevate</h1>
+            <p class="text-md sm:text-lg text-gray-300 mb-8 max-w-sm">We All Start Somewhere</p>
+            <button id="topics-tools-btn-landing" class="bg-blue-600 text-white p-3 px-6 rounded-full text-lg font-medium hover:bg-blue-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-md">
+                Topics/Tools
+            </button>
+        </div>
+
+        <!-- Chat Interface Section - Main content for Chat, takes up flex-1 -->
+        <div id="chat-interface" class="ui-container flex-col">
+            <!-- Chat History Container - Flex-1 and scrollable -->
+            <div id="chat-container" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-900">
+                <!-- Initial message goes here for a new chat -->
+            </div>
+
+            <!-- Input Area - Fixed at the bottom, flex-shrink-0 -->
+            <div id="input-area" class="p-3 border-t border-gray-700 bg-slate-900 flex items-end flex-shrink-0">
+                <textarea id="user-input" rows="1" placeholder="Type your message or topic..." class="flex-1 p-3 bg-gray-700 text-white border border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400 mr-2 resize-none"></textarea>
+                <button id="send-btn" class="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-md flex-shrink-0">
+                    <!-- Standard Send Icon Path (Paper Plane) -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transform -rotate-45" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Flashcard UI - Takes up flex-1 when active -->
+        <div id="flashcard-ui" class="ui-container flex-col p-4 justify-between">
+            <div id="flashcard-container" class="flashcard-main-container flex-1">
+                <div class="flashcard-display">
+                    <h2 class="text-xl font-semibold mb-2 text-gray-400">Question:</h2>
+                    <p id="flashcard-question" class="text-lg text-center font-medium"></p>
+                </div>
+                <div id="flashcard-answer-container" class="answer-container">
+                    <h2 class="text-xl font-semibold mb-2 text-gray-400">Answer:</h2>
+                    <p id="flashcard-answer" class="text-lg"></p>
+                </div>
+            </div>
+            
+            <div class="flex flex-col items-center flex-shrink-0">
+                <div class="flex space-x-4 mb-4">
+                    <button id="reveal-btn" class="bg-blue-600 text-white p-2 px-6 rounded-full text-sm font-medium hover:bg-blue-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-md">
+                        Reveal Answer
+                    </button>
+                    <button id="next-btn" class="bg-blue-600 text-white p-2 px-6 rounded-full text-sm font-medium hover:bg-blue-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-md">
+                        Next Card
+                    </button>
+                </div>
+                <button id="back-to-chat-btn" class="bg-gray-600 text-white p-2 px-4 rounded-full text-sm font-medium hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-md">
+                    Back to Chat
+                </button>
+            </div>
+        </div>
+        
+        <!-- Pop-up Panel for Topics/Tools (Fixed overlay position relative to viewport, not main container) -->
+        <div id="topics-tools-popup" class="fixed top-0 right-0 h-full w-64 bg-gray-900 shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out p-6 text-white flex flex-col">
+            <div class="flex items-center justify-between border-b border-gray-700 pb-4 mb-4 flex-shrink-0">
+                <h2 class="text-xl font-bold">Topics</h2>
+                <button id="close-popup-btn" class="text-gray-400 hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto -mr-3 pr-3">
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold mb-2 text-gray-400">Topics</h3>
+                    <button class="topic-btn block w-full text-left p-3 my-2 rounded-lg bg-gray-800 hover:bg-blue-600 transition-colors duration-200">
+                        Physics
+                    </button>
+                    <button class="topic-btn block w-full text-left p-3 my-2 rounded-lg bg-gray-800 hover:bg-blue-600 transition-colors duration-200">
+                        Chemistry
+                    </button>
+                    <button class="topic-btn block w-full text-left p-3 my-2 rounded-lg bg-gray-800 hover:bg-blue-600 transition-colors duration-200">
+                        Maths
+                    </button>
+                    <button class="topic-btn block w-full text-left p-3 my-2 rounded-lg bg-gray-800 hover:bg-blue-600 transition-colors duration-200">
+                        Biology
+                    </button>
+                    <!-- NEW TOPIC ADDED HERE -->
+                    <button class="topic-btn block w-full text-left p-3 my-2 rounded-lg bg-gray-800 hover:bg-blue-600 transition-colors duration-200">
+                        English
+                    </button>
+                    <button class="topic-btn block w-full text-left p-3 my-2 rounded-lg bg-gray-800 hover:bg-blue-600 transition-colors duration-200">
+                        History
+                    </button>
+                    <button class="topic-btn block w-full text-left p-3 my-2 rounded-lg bg-gray-800 hover:bg-blue-600 transition-colors duration-200">
+                        Civics
+                    </button>
+                    <button class="topic-btn block w-full text-left p-3 my-2 rounded-lg bg-gray-800 hover:bg-blue-600 transition-colors duration-200">
+                        Geography
+                    </button>
+                    <button class="topic-btn block w-full text-left p-3 my-2 rounded-lg bg-gray-800 hover:bg-blue-600 transition-colors duration-200">
+                        Economics
+                    </button>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-2 text-gray-400">Tools</h3>
+                    <button id="quiz-generator-btn" class="tool-btn block w-full text-left p-3 my-2 rounded-lg bg-gray-800 hover:bg-blue-600 transition-colors duration-200">
+                        Quiz Generator
+                    </button>
+                    <button id="chatbot-btn" class="tool-btn block w-full text-left p-3 my-2 rounded-lg bg-gray-800 hover:bg-blue-600 transition-colors duration-200">
+                        Chatbot
+                    </button>
+                    <button id="flashcard-generator-btn" class="tool-btn block w-full text-left p-3 my-2 rounded-lg bg-gray-800 hover:bg-blue-600 transition-colors duration-200">
+                        Flashcard Generator
+                    </button>
+                    <a href="calculator.html">
+                     <button class="tool-btn block w-full text-left p-3 my-2 rounded-lg bg-gray-800 hover:bg-blue-600 transition-colors duration-200">
+                        Calculator
+                    </button>
+                    </a>
+                    <a href="credits.html">
+                     <button class="tool-btn block w-full text-left p-3 my-2 rounded-lg bg-gray-800 hover:bg-blue-600 transition-colors duration-200">
+                        Credits
+                    </button>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pop-up Panel for Plans (Fixed overlay position relative to viewport, not main container) -->
+        <div id="plans-popup" class="fixed top-0 right-0 h-full w-64 bg-gray-900 shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out p-6 text-white flex flex-col">
+            <div class="flex items-center justify-between border-b border-gray-700 pb-4 mb-4 flex-shrink-0">
+                <h2 class="text-xl font-bold">Plans</h2>
+                <button id="close-plans-btn" class="text-gray-400 hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto -mr-3 pr-3">
+                <a href="plans.html">
+                    <button class="tool-btn block w-full text-left p-3 my-2 rounded-lg bg-gray-800 hover:bg-blue-600 transition-colors duration-200">
+                        See Plans
+                    </button>
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // UI Elements
+        const landingPage = document.getElementById('landing-page');
+        const chatInterface = document.getElementById('chat-interface');
+        const mainHeader = document.getElementById('main-header');
+        const topicsToolsPopup = document.getElementById('topics-tools-popup');
+        const closePopupBtn = document.getElementById('close-popup-btn');
+        const landingTopicsToolsBtn = document.getElementById('topics-tools-btn-landing');
+        const chatTopicsToolsBtn = document.getElementById('topics-tools-btn-chat');
+        const topicButtons = document.querySelectorAll('.topic-btn');
+        const quizGeneratorBtn = document.getElementById('quiz-generator-btn');
+        const chatbotBtn = document.getElementById('chatbot-btn');
+        const flashcardGeneratorBtn = document.getElementById('flashcard-generator-btn');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-btn');
+        const chatContainer = document.getElementById('chat-container');
+        const flashcardUI = document.getElementById('flashcard-ui');
+        const flashcardQuestion = document.getElementById('flashcard-question');
+        const flashcardAnswer = document.getElementById('flashcard-answer');
+        const flashcardAnswerContainer = document.getElementById('flashcard-answer-container');
+        const revealBtn = document.getElementById('reveal-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const inputArea = document.getElementById('input-area');
+        const statusText = document.getElementById('status-text');
+        const backToChatBtn = document.getElementById('back-to-chat-btn');
+        
+        const plansBtn = document.getElementById('plans-btn');
+        const plansPopup = document.getElementById('plans-popup');
+        const closePlansBtn = document.getElementById('close-plans-btn');
+
+        const allUiContainers = [landingPage, chatInterface, flashcardUI];
+
+        // State variables
+        let currentMode = 'landing'; // Set initial mode to 'landing'
+        let flashcards = [];
+        let currentCardIndex = 0;
+        
+        // --- NEW CONFIGURATION: Targeting the Python Flask Server ---
+        // These MUST match the endpoints in your existing app.py file
+        const CHAT_ENDPOINT = 'http://127.0.0.1:5000/chat';
+        const FLASHCARD_ENDPOINT = 'http://127.0.0.1:5000/flashcard';
+        const activeModelDisplay = 'OpenRouter AI'; // Display name for the AI model
+
+        // Function to update the status text based on the active mode/context
+        function updateStatus(message) {
+            if (message) {
+                statusText.textContent = message;
+            } else if (currentMode === 'flashcard-mode') {
+                statusText.textContent = `Flashcards - Powered by ${activeModelDisplay}`;
+            } else if (mainHeader.textContent === 'Quiz Generator') {
+                statusText.textContent = `Quiz Mode - Powered by ${activeModelDisplay}`;
+            } else if (currentMode === 'landing') {
+                statusText.textContent = 'AI-powered learning';
+            } else { // 'chat' mode, topic mode, or quiz-mode-input
+                statusText.textContent = `${mainHeader.textContent} - Powered by ${activeModelDisplay}`;
+            }
+        }
+
+        // Function to update UI to a new mode
+        function switchToMode(mode, context, welcomeMessage) {
+            currentMode = mode;
+            
+            allUiContainers.forEach(container => {
+                container.classList.remove('is-active');
+            });
+
+            let targetContainer = chatInterface;
+
+            if (mode === 'landing') {
+                 targetContainer = landingPage;
+                 mainHeader.textContent = 'Project Elevate';
+            } else if (mode === 'flashcard-mode') {
+                targetContainer = flashcardUI;
+            } else if (mode === 'flashcard-mode-input') {
+                targetContainer = chatInterface;
+                chatContainer.innerHTML = '';
+                if (welcomeMessage) {
+                    appendMessage(welcomeMessage, 'ai');
+                }
+            } else { // chat-mode or quiz-mode-input
+                targetContainer = chatInterface;
+                chatContainer.innerHTML = '';
+                if (welcomeMessage) {
+                    appendMessage(welcomeMessage, 'ai');
+                }
+            }
+            
+            targetContainer.classList.add('is-active');
+            
+            if (context) {
+                mainHeader.textContent = context;
+            }
+            
+            updateStatus(); // Update status text when mode changes
+
+            // --- Input Area Visibility Logic ---
+            if (mode === 'landing' || mode === 'flashcard-mode') {
+                inputArea.style.display = 'none';
+            } else {
+                inputArea.style.display = 'flex';
+            }
+            // -----------------------------------
+
+            // Reset input and button state
+            userInput.disabled = false;
+            sendButton.disabled = false;
+        }
+
+        // --- Helper Functions ---
+        
+        // Function to auto-resize textarea up to a max height
+        function autoResizeTextarea() {
+            const minHeight = 48; // Minimum height for one row (~p-3 h-12)
+            const maxHeight = 200; // Maximum height limit
+            
+            userInput.style.height = 'auto'; // Reset height to recalculate scrollHeight
+            
+            let newHeight = userInput.scrollHeight + 2; 
+            if (newHeight < minHeight) newHeight = minHeight;
+            if (newHeight > maxHeight) newHeight = maxHeight;
+            
+            userInput.style.height = newHeight + 'px';
+            
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        // Function to append a message to the chat container
+        function appendMessage(text, sender) {
+            const messageElement = document.createElement('div');
+            
+            // Set the wrapper to full width and use flex for alignment control
+            messageElement.classList.add('message', 'w-full', 'flex', 'mb-2'); 
+            
+            const bubble = document.createElement('div');
+            // Apply max-width to the bubble itself
+            bubble.classList.add('p-3', 'rounded-xl', 'shadow-md', 'break-words', 'max-w-[75%]'); 
+            
+            if (sender === 'user') {
+                // User text aligns right (pushed by justify-end)
+                messageElement.classList.add('justify-end'); 
+                // Rounded corner removed from bottom right
+                bubble.classList.add('bg-blue-600', 'text-white', 'rounded-br-none');
+            } else if (sender === 'error') {
+                 // Error message aligns left
+                messageElement.classList.add('justify-start'); 
+                // Red background for errors
+                bubble.classList.add('bg-red-700', 'text-white', 'rounded-bl-none');
+            } else {
+                // AI text aligns left (justify-start)
+                messageElement.classList.add('justify-start'); 
+                // Rounded corner removed from bottom left
+                bubble.classList.add('bg-gray-700', 'text-white', 'rounded-bl-none');
+            }
+
+            const tempDiv = document.createElement('div');
+            tempDiv.textContent = text;
+            const formattedText = tempDiv.innerHTML.replace(/\n/g, '<br>');
+            bubble.innerHTML = formattedText;
+            
+            messageElement.appendChild(bubble);
+            chatContainer.appendChild(messageElement);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Function to simulate a typing indicator
+        function showTypingIndicator() {
+            const indicator = document.createElement('div');
+            indicator.id = 'typing-indicator';
+            indicator.classList.add('flex', 'items-center', 'space-x-1', 'p-3', 'bg-gray-700', 'text-gray-400', 'rounded-xl', 'shadow-md', 'mb-2', 'self-start');
+            indicator.innerHTML = `
+                <span class="text-sm">Typing...</span>
+                <span class="animate-pulse w-2 h-2 bg-gray-400 rounded-full"></span>
+                <span class="animate-pulse w-2 h-2 bg-gray-400 rounded-full animation-delay-200"></span>
+                <span class="animate-pulse w-2 h-2 bg-gray-400 rounded-full animation-delay-400"></span>
+            `;
+            chatContainer.appendChild(indicator);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Function to remove the typing indicator
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typing-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+        
+        // Function to display an error message
+        function displayError(message) {
+            appendMessage(`Connection Error: ${message}`, 'error');
+        }
+
+        // --- Core Utility: Communication with the Python Backend ---
+        async function processUserInput() {
+            const message = userInput.value.trim();
+            if (!message) {
+                return; // Don't send empty requests
+            }
+            appendMessage(message, "user");
+            userInput.value = "";
+            userInput.disabled = true;
+            sendButton.disabled = true;
+            showTypingIndicator();
+        
+            // This is the CRITICAL FIX
+            fetch("http://127.0.0.1:5000/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prompt: message })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (!result.response) {
+                    appendMessage("No response from AI.", "error");
+                } else {
+                    appendMessage(result.response, "ai");
+                }
+            })
+            .catch(error => {
+                appendMessage("Connection Error: " + error, "error");
+            })
+            .finally(() => {
+                removeTypingIndicator();
+                userInput.disabled = false;
+                sendButton.disabled = false;
+                userInput.focus();
+            });
+        }
+
+        
+        // --- Event Listeners and UI Logic ---
+        
+        landingTopicsToolsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            topicsToolsPopup.classList.add('translate-x-0');
+        });
+        chatTopicsToolsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            topicsToolsPopup.classList.add('translate-x-0');
+        });
+        closePopupBtn.addEventListener('click', () => {
+            topicsToolsPopup.classList.remove('translate-x-0');
+        });
+        
+        plansBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            plansPopup.classList.add('translate-x-0');
+        });
+        closePlansBtn.addEventListener('click', () => {
+            plansPopup.classList.remove('translate-x-0');
+        });
+        
+        document.addEventListener('click', (event) => {
+            if (topicsToolsPopup.classList.contains('translate-x-0') && 
+                !topicsToolsPopup.contains(event.target) && 
+                !chatTopicsToolsBtn.contains(event.target) &&
+                !landingTopicsToolsBtn.contains(event.target)) {
+                topicsToolsPopup.classList.remove('translate-x-0');
+            }
+            if (plansPopup.classList.contains('translate-x-0') && 
+                !plansPopup.contains(event.target) && 
+                !plansBtn.contains(event.target)) {
+                plansPopup.classList.remove('translate-x-0');
+            }
+        });
+
+
+        chatbotBtn.addEventListener('click', () => {
+            switchToMode('chat', 'Chatbot', "Hello! I'm your AI chatbot. What can I help you learn today?");
+            topicsToolsPopup.classList.remove('translate-x-0');
+        });
+        
+        flashcardGeneratorBtn.addEventListener('click', () => {
+            switchToMode('flashcard-mode-input', 'Flashcard Generator', "What topic would you like to create flashcards for? Let me know a subject or specific concept!");
+            topicsToolsPopup.classList.remove('translate-x-0');
+        });
+        
+        quizGeneratorBtn.addEventListener('click', () => {
+            switchToMode('chat', 'Quiz Generator', "Ready to test your knowledge! What subject or topic do you want to create a quick quiz about?");
+            topicsToolsPopup.classList.remove('translate-x-0');
+        });
+
+        topicButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const topic = button.textContent.trim();
+                switchToMode('chat', topic, `That's a great choice! I'm here to help you with ${topic}. What do you want to start with?`);
+                topicsToolsPopup.classList.remove('translate-x-0');
+            });
+        });
+
+        backToChatBtn.addEventListener('click', () => {
+            // When going back to chat, we usually want to start a fresh chat mode
+            switchToMode('chat', 'Chatbot', "Welcome back! Click 'Topics/Tools' in the header to pick a new subject or tool.");
+        });
+
+        sendButton.addEventListener('click', processUserInput);
+        
+        userInput.addEventListener('input', autoResizeTextarea);
+
+        userInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault(); 
+                processUserInput();
+            }
+        });
+        
+        // --- Flashcard UI Logic ---
+        
+        function updateFlashcardUI() {
+            if (flashcards.length > 0) {
+                const currentCard = flashcards[currentCardIndex];
+                
+                // Use innerHTML to allow for formatting like LaTeX to render
+                flashcardQuestion.innerHTML = currentCard.question; 
+                flashcardAnswer.innerHTML = currentCard.answer; 
+                
+                flashcardAnswerContainer.classList.remove('is-visible');
+                revealBtn.textContent = 'Reveal Answer';
+                nextBtn.textContent = `Next Card (${currentCardIndex + 1}/${flashcards.length})`;
+            } else {
+                flashcardQuestion.innerHTML = `<h2 class="text-xl font-semibold mb-2 text-gray-400">Question:</h2><p class="text-lg text-center font-medium">No flashcards to display. Go back to Chat to generate a set!</p>`;
+                flashcardAnswer.innerHTML = ``;
+                flashcardAnswerContainer.classList.remove('is-visible');
+                nextBtn.textContent = `Next Card (0/0)`;
+            }
+        }
+        
+        revealBtn.addEventListener('click', () => {
+            flashcardAnswerContainer.classList.add('is-visible');
+            revealBtn.textContent = 'Answer Revealed';
+        });
+
+        nextBtn.addEventListener('click', () => {
+            currentCardIndex = (currentCardIndex + 1) % flashcards.length;
+            updateFlashcardUI();
+        });
+
+        window.onload = () => {
+            // Ensures the landing page is active on load
+            landingPage.classList.add('is-active');
+            autoResizeTextarea();
+            // Ensure status and header are correctly set for the landing page
+            mainHeader.textContent = "Project Elevate";
+            statusText.textContent = "AI-powered learning";
+            currentMode = 'landing';
+            inputArea.style.display = 'none'; // CRITICAL FIX: Hide input on landing page
+        };
+    </script>
+
+</body>
+</html>
