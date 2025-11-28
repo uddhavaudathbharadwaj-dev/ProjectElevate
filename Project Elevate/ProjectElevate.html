@@ -148,34 +148,6 @@
                 </button>
             </div>
         </div>
-
-        <!-- Flashcard UI - Takes up flex-1 when active -->
-        <div id="flashcard-ui" class="ui-container flex-col p-4 justify-between">
-            <div id="flashcard-container" class="flashcard-main-container flex-1">
-                <div class="flashcard-display">
-                    <h2 class="text-xl font-semibold mb-2 text-gray-400">Question:</h2>
-                    <p id="flashcard-question" class="text-lg text-center font-medium"></p>
-                </div>
-                <div id="flashcard-answer-container" class="answer-container">
-                    <h2 class="text-xl font-semibold mb-2 text-gray-400">Answer:</h2>
-                    <p id="flashcard-answer" class="text-lg"></p>
-                </div>
-            </div>
-            
-            <div class="flex flex-col items-center flex-shrink-0">
-                <div class="flex space-x-4 mb-4">
-                    <button id="reveal-btn" class="bg-blue-600 text-white p-2 px-6 rounded-full text-sm font-medium hover:bg-blue-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-md">
-                        Reveal Answer
-                    </button>
-                    <button id="next-btn" class="bg-blue-600 text-white p-2 px-6 rounded-full text-sm font-medium hover:bg-blue-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-md">
-                        Next Card
-                    </button>
-                </div>
-                <button id="back-to-chat-btn" class="bg-gray-600 text-white p-2 px-4 rounded-full text-sm font-medium hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-md">
-                    Back to Chat
-                </button>
-            </div>
-        </div>
         
         <!-- Pop-up Panel for Topics/Tools (Fixed overlay position relative to viewport, not main container) -->
         <div id="topics-tools-popup" class="fixed top-0 right-0 h-full w-64 bg-gray-900 shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out p-6 text-white flex flex-col">
@@ -227,9 +199,6 @@
                     <button id="chatbot-btn" class="tool-btn block w-full text-left p-3 my-2 rounded-lg bg-gray-800 hover:bg-blue-600 transition-colors duration-200">
                         Chatbot
                     </button>
-                    <button id="flashcard-generator-btn" class="tool-btn block w-full text-left p-3 my-2 rounded-lg bg-gray-800 hover:bg-blue-600 transition-colors duration-200">
-                        Flashcard Generator
-                    </button>
                     <a href="calculator.html">
                      <button class="tool-btn block w-full text-left p-3 my-2 rounded-lg bg-gray-800 hover:bg-blue-600 transition-colors duration-200">
                         Calculator
@@ -277,14 +246,9 @@
         const topicButtons = document.querySelectorAll('.topic-btn');
         const quizGeneratorBtn = document.getElementById('quiz-generator-btn');
         const chatbotBtn = document.getElementById('chatbot-btn');
-        const flashcardGeneratorBtn = document.getElementById('flashcard-generator-btn');
         const userInput = document.getElementById('user-input');
         const sendButton = document.getElementById('send-btn');
         const chatContainer = document.getElementById('chat-container');
-        const flashcardUI = document.getElementById('flashcard-ui');
-        const flashcardQuestion = document.getElementById('flashcard-question');
-        const flashcardAnswer = document.getElementById('flashcard-answer');
-        const flashcardAnswerContainer = document.getElementById('flashcard-answer-container');
         const revealBtn = document.getElementById('reveal-btn');
         const nextBtn = document.getElementById('next-btn');
         const inputArea = document.getElementById('input-area');
@@ -295,25 +259,21 @@
         const plansPopup = document.getElementById('plans-popup');
         const closePlansBtn = document.getElementById('close-plans-btn');
 
-        const allUiContainers = [landingPage, chatInterface, flashcardUI];
+        const allUiContainers = [landingPage, chatInterface];
 
         // State variables
         let currentMode = 'landing'; // Set initial mode to 'landing'
-        let flashcards = [];
         let currentCardIndex = 0;
         
         // --- NEW CONFIGURATION: Targeting the Python Flask Server ---
         // These MUST match the endpoints in your existing app.py file
-        const CHAT_ENDPOINT = 'http://127.0.0.1:5000/chat';
-        const FLASHCARD_ENDPOINT = 'http://127.0.0.1:5000/flashcard';
+        const CHAT_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
         const activeModelDisplay = 'OpenRouter AI'; // Display name for the AI model
 
         // Function to update the status text based on the active mode/context
         function updateStatus(message) {
             if (message) {
                 statusText.textContent = message;
-            } else if (currentMode === 'flashcard-mode') {
-                statusText.textContent = `Flashcards - Powered by ${activeModelDisplay}`;
             } else if (mainHeader.textContent === 'Quiz Generator') {
                 statusText.textContent = `Quiz Mode - Powered by ${activeModelDisplay}`;
             } else if (currentMode === 'landing') {
@@ -336,14 +296,6 @@
             if (mode === 'landing') {
                  targetContainer = landingPage;
                  mainHeader.textContent = 'Project Elevate';
-            } else if (mode === 'flashcard-mode') {
-                targetContainer = flashcardUI;
-            } else if (mode === 'flashcard-mode-input') {
-                targetContainer = chatInterface;
-                chatContainer.innerHTML = '';
-                if (welcomeMessage) {
-                    appendMessage(welcomeMessage, 'ai');
-                }
             } else { // chat-mode or quiz-mode-input
                 targetContainer = chatInterface;
                 chatContainer.innerHTML = '';
@@ -361,7 +313,7 @@
             updateStatus(); // Update status text when mode changes
 
             // --- Input Area Visibility Logic ---
-            if (mode === 'landing' || mode === 'flashcard-mode') {
+            if (mode === 'landing') {
                 inputArea.style.display = 'none';
             } else {
                 inputArea.style.display = 'flex';
@@ -470,7 +422,7 @@
             showTypingIndicator();
         
             // This is the CRITICAL FIX
-            fetch("http://127.0.0.1:5000/chat", {
+            fetch(CHAT_ENDPOINT, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ prompt: message })
@@ -537,11 +489,6 @@
             topicsToolsPopup.classList.remove('translate-x-0');
         });
         
-        flashcardGeneratorBtn.addEventListener('click', () => {
-            switchToMode('flashcard-mode-input', 'Flashcard Generator', "What topic would you like to create flashcards for? Let me know a subject or specific concept!");
-            topicsToolsPopup.classList.remove('translate-x-0');
-        });
-        
         quizGeneratorBtn.addEventListener('click', () => {
             switchToMode('chat', 'Quiz Generator', "Ready to test your knowledge! What subject or topic do you want to create a quick quiz about?");
             topicsToolsPopup.classList.remove('translate-x-0');
@@ -570,37 +517,7 @@
                 processUserInput();
             }
         });
-        
-        // --- Flashcard UI Logic ---
-        
-        function updateFlashcardUI() {
-            if (flashcards.length > 0) {
-                const currentCard = flashcards[currentCardIndex];
-                
-                // Use innerHTML to allow for formatting like LaTeX to render
-                flashcardQuestion.innerHTML = currentCard.question; 
-                flashcardAnswer.innerHTML = currentCard.answer; 
-                
-                flashcardAnswerContainer.classList.remove('is-visible');
-                revealBtn.textContent = 'Reveal Answer';
-                nextBtn.textContent = `Next Card (${currentCardIndex + 1}/${flashcards.length})`;
-            } else {
-                flashcardQuestion.innerHTML = `<h2 class="text-xl font-semibold mb-2 text-gray-400">Question:</h2><p class="text-lg text-center font-medium">No flashcards to display. Go back to Chat to generate a set!</p>`;
-                flashcardAnswer.innerHTML = ``;
-                flashcardAnswerContainer.classList.remove('is-visible');
-                nextBtn.textContent = `Next Card (0/0)`;
-            }
-        }
-        
-        revealBtn.addEventListener('click', () => {
-            flashcardAnswerContainer.classList.add('is-visible');
-            revealBtn.textContent = 'Answer Revealed';
-        });
-
-        nextBtn.addEventListener('click', () => {
-            currentCardIndex = (currentCardIndex + 1) % flashcards.length;
-            updateFlashcardUI();
-        });
+    
 
         window.onload = () => {
             // Ensures the landing page is active on load
@@ -615,4 +532,5 @@
     </script>
 
 </body>
+
 </html>
