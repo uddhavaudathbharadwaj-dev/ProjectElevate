@@ -29,13 +29,12 @@ app.post("/chat", async (req, res) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "kwaipilot/kat-coder-pro:free",
+        model: "deepseek/deepseek-chat-v3.1:free",
         messages: [
           {
             role: "system",
             content: `
 You are an AI tutor called Project Elevate. Answer politely, concisely, and clearly.
-Do not return HTML—just plain text messages.
 Be friendly, supportive, and educational.
 `
           },
