@@ -249,8 +249,6 @@
         const userInput = document.getElementById('user-input');
         const sendButton = document.getElementById('send-btn');
         const chatContainer = document.getElementById('chat-container');
-        const revealBtn = document.getElementById('reveal-btn');
-        const nextBtn = document.getElementById('next-btn');
         const inputArea = document.getElementById('input-area');
         const statusText = document.getElementById('status-text');
         const backToChatBtn = document.getElementById('back-to-chat-btn');
@@ -263,11 +261,9 @@
 
         // State variables
         let currentMode = 'landing'; // Set initial mode to 'landing'
-        let currentCardIndex = 0;
-       
-        // --- NEW CONFIGURATION: Targeting the Python Flask Server ---
-        // These MUST match the endpoints in your existing app.py file
-        const CHAT_ENDPOINT = "https://project-elevate-theta.vercel.app/debug";
+        let currentTopic = null;
+
+        const CHAT_ENDPOINT = "https://project-elevate-theta.vercel.app/chat";
         const activeModelDisplay = 'OpenRouter AI'; // Display name for the AI model
 
         // Function to update the status text based on the active mode/context
@@ -409,7 +405,6 @@
             appendMessage(`Connection Error: ${message}`, 'error');
         }
 
-        // --- Core Utility: Communication with the Python Backend ---
         async function processUserInput() {
             const message = userInput.value.trim();
             if (!message) {
@@ -425,7 +420,7 @@
             fetch(CHAT_ENDPOINT, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt: message })
+                body: JSON.stringify({ message, mode: currentMode, subject: currentTopic || "" })
             })
             .then(response => response.json())
             .then(result => {
@@ -485,18 +480,23 @@
 
 
         chatbotBtn.addEventListener('click', () => {
+currentTopic = null;
             switchToMode('chat', 'Chatbot', "Hello! I'm your AI chatbot. What can I help you learn today?");
             topicsToolsPopup.classList.remove('translate-x-0');
         });
        
         quizGeneratorBtn.addEventListener('click', () => {
-            switchToMode('chat', 'Quiz Generator', "Ready to test your knowledge! What subject or topic do you want to create a quick quiz about?");
+currentTopic = null;
+            switchToMode('quiz', 'Quiz Generator', "Ready to test your knowledge! What subject or topic do you want to create a quick quiz about?");
             topicsToolsPopup.classList.remove('translate-x-0');
         });
 
         topicButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const topic = button.textContent.trim();
+if (currentMode === 'chat') {
+   currentTopic = topic;
+}
                 switchToMode('chat', topic, `That's a great choice! I'm here to help you with ${topic}. What do you want to start with?`);
                 topicsToolsPopup.classList.remove('translate-x-0');
             });
